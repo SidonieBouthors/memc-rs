@@ -1,0 +1,17 @@
+[package]
+name = "memcrs-ebpf"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+memcrs-common = { path = "../memcrs-common" }
+
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[build-dependencies]
+which = { workspace = true }
+
+[[bin]]
+name = "memcrs"
+path = "src/main.rs"

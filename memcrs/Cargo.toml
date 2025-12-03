@@ -11,6 +11,14 @@ path = "src/lib.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+memcrs-common = { path = "../memcrs-common", features = ["user"] }
+anyhow = { workspace = true, default-features = true }
+aya = { workspace = true }
+aya-log = { workspace = true }
+env_logger = { workspace = true }
+libc = { workspace = true }
+fnv = "1.0.7"
+
 byte-unit = "5.1.6"
 bytes = "1.10.0"
 clap = { version = "4.5.50", features = ["derive", "cargo"] }
@@ -44,6 +52,12 @@ test-case = "3.3.1"
 criterion = { version = "0.7.0", features = ["html_reports"] }
 procspawn = { version = "1.0.1", features = ["test-support"] }
 lazy_static = "1.5.0"
+
+[build-dependencies]
+anyhow = { workspace = true }
+aya-build = { workspace = true }
+cargo_metadata = { workspace = true }
+memcrs-ebpf = { path = "../memcrs-ebpf" }
 
 [features]
 criterion = []
