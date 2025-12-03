@@ -15,7 +15,6 @@ mod memcapability {
     use crate::params_parser::MemcacheClientConfig;
 
     use super::params_parser;
-    use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
     fn get_log_level(verbose: u8) -> log::LevelFilter {
         // Vary the output based on how many times the user used the "verbose" flag
@@ -56,13 +55,12 @@ mod memcapability {
         
         init_logger(&cli_config);
 
-        info!("Server address: {}", cli_config.server_address.to_string());
+        info!("Server address: {}", cli_config.server_address);
         info!("Server port: {}", cli_config.port);
         info!(
             "Max item size: {}",
             byte_unit::Byte::from_u64(cli_config.item_size)
                 .get_appropriate_unit(byte_unit::UnitType::Decimal)
-                .to_string()
         );
     }
 }

@@ -1,8 +1,5 @@
 extern crate core_affinity;
-use crate::memcache;
-use crate::memcache::store;
 use crate::memcache_server;
-use crate::server;
 use crate::{
     cache::cache::Cache, cache::pending_tasks_runner::PendingTasksRunner,
     memcache::cli::parser::RuntimeType,

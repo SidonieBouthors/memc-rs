@@ -110,6 +110,10 @@ impl MemcrsdServerParamsBuilder {
                 result.push(String::from("--store-engine"));
                 result.push(String::from("moka"));
             }
+            StoreEngine::EbpfMap => {
+                result.push(String::from("--store-engine"));
+                result.push(String::from("ebpf-map"));
+            }
         }
 
         match self.runtime {
