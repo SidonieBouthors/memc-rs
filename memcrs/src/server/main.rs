@@ -136,7 +136,7 @@ pub fn run(args: Vec<String>) {
                 })
                 .unwrap();
 
-            Arc::new(EbpfMapMemoryStore::new(system_timer.clone(), map_handle))
+            Arc::new(EbpfMapMemoryStore::new(system_timer.clone(), ebpf, map_handle))
         }
         StoreEngine::DashMap => Arc::new(DashMapMemoryStore::new(system_timer.clone())),
         StoreEngine::Moka => Arc::new(MokaMemoryStore::new(
