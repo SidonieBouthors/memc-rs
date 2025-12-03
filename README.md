@@ -2,6 +2,12 @@
 
 memcrsd is a key value store implementation in Rust. It is compatible with binary protocol of memcached server.
 
+## eBPF
+
+This fork of memcrs adds the ability to use an eBPF map as a backend storage engine. This allows for low latency access to key-value pairs, as the data is stored in kernel space.
+
+For this we use the Aya eBPF library for Rust. See [Aya Development](https://aya-rs.dev/book/start/development) for more information.
+
 ## Supported features and compatibility
 
 To check compatibility with memcached server implementation memcrsd project
