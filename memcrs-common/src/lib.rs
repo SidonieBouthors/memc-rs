@@ -2,7 +2,7 @@
 
 pub type EbpfKey = u64;
 
-pub const MAX_VALUE_SIZE: usize = 4096;
+pub const MAX_VALUE_SIZE: usize = 5120;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
