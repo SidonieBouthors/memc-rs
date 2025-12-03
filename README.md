@@ -6,7 +6,14 @@ memcrsd is a key value store implementation in Rust. It is compatible with binar
 
 This fork of memcrs adds the ability to use an eBPF map as a backend storage engine. This allows for low latency access to key-value pairs, as the data is stored in kernel space.
 
-For this we use the Aya eBPF library for Rust. See [Aya Development](https://aya-rs.dev/book/start/development) for more information.
+For this we use the Aya eBPF library for Rust. See [Aya Development](https://aya-rs.dev/book/start/development) for the prerequisites to build and run eBPF programs.
+
+To run memcrsd with the eBPF based storage engine, you may use the following command:
+
+```sh
+cargo run --config 'target."cfg(all())".runner="sudo -E"' --bin memcrsd -- --store-engine ebpf-map
+```
+
 
 ## Supported features and compatibility
 
