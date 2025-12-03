@@ -15,7 +15,7 @@ impl PendingTasksRunner {
         PendingTasksRunner { store }
     }
 
-    pub async fn run(&self) {
+    pub async fn run(&self) -> anyhow::Result<()> {
         let start = Instant::now();
         let mut interval = interval_at(
             start,

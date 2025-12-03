@@ -1,6 +1,7 @@
 use std::env;
 extern crate memcrs;
 
-fn main() {
-    memcrs::server::main::run(env::args().collect());
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    memcrs::server::main::run(env::args().collect()).await
 }

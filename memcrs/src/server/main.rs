@@ -32,7 +32,7 @@ fn get_log_level(verbose: u8) -> tracing::Level {
     }
 }
 
-pub fn run(args: Vec<String>) {
+pub async fn run(args: Vec<String>) -> anyhow::Result<()> {
     LogTracer::init().expect("Cannot initialize logger");
 
     let cli_config = match memcache::cli::parser::parse(args) {
@@ -146,6 +146,9 @@ pub fn run(args: Vec<String>) {
         )),
     };
 
-    let parent_runtime = memcache_server::runtime_builder::create_memcrs_server(cli_config, store);
-    parent_runtime.block_on(system_timer.run())
+    let server_future = memcache_server::runtime_builder::create_memcrs_server(cli_config, store);
+
+    tokio::try_join!(server_future, system_timer.run(),)?;
+
+    Ok(())
 }

@@ -55,7 +55,7 @@ impl MemcacheTcpServer {
         }
     }
 
-    pub async fn run<A: ToSocketAddrs>(&mut self, addr: A) -> io::Result<()> {
+    pub async fn run<A: ToSocketAddrs>(&mut self, addr: A) -> anyhow::Result<()> {
         let listener = self.get_tcp_listener(addr)?;
         loop {
             tokio::select! {

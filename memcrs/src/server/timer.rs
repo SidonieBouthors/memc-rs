@@ -24,7 +24,7 @@ impl SystemTimer {
         }
     }
 
-    pub async fn run(&self) {
+    pub async fn run(&self) -> anyhow::Result<()> {
         let start = Instant::now();
         let mut interval = interval_at(start, Duration::from_secs(1));
         loop {

@@ -4,6 +4,7 @@ use crate::{
     cache::cache::Cache, cache::pending_tasks_runner::PendingTasksRunner,
     memcache::cli::parser::RuntimeType,
 };
+use anyhow::Result;
 use std::net::SocketAddr;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
@@ -41,10 +42,10 @@ fn create_current_thread_runtime() -> tokio::runtime::Runtime {
     runtime
 }
 
-fn create_current_thread_server(
+async fn create_current_thread_server(
     config: MemcrsdConfig,
     store: Arc<dyn Cache + Send + Sync>,
-) -> tokio::runtime::Runtime {
+) -> Result<()> {
     let addr = SocketAddr::new(config.listen_address, config.port);
     let memc_config = memcache_server::memc_tcp::MemcacheServerConfig::new(
         60,
@@ -86,13 +87,14 @@ fn create_current_thread_server(
             }
         });
     }
-    create_current_thread_runtime()
+
+    Ok(())
 }
 
-fn create_threadpool_server(
+async fn create_threadpool_server(
     config: MemcrsdConfig,
     store: Arc<dyn Cache + Send + Sync>,
-) -> tokio::runtime::Runtime {
+) -> Result<()> {
     let addr = SocketAddr::new(config.listen_address, config.port);
     let memc_config = memcache_server::memc_tcp::MemcacheServerConfig::new(
         60,
@@ -100,21 +102,21 @@ fn create_threadpool_server(
         config.item_size_limit as u32,
         config.backlog_limit,
     );
-    let runtime = create_multi_thread_runtime(config.threads);
     let mut tcp_server =
         memcache_server::memc_tcp::MemcacheTcpServer::new(memc_config, Arc::clone(&store));
     let task_runner = PendingTasksRunner::new(Arc::clone(&store));
-    runtime.spawn(async move { task_runner.run().await });
-    runtime.spawn(async move { tcp_server.run(addr).await });
-    runtime
+
+    tokio::try_join!(tcp_server.run(addr), task_runner.run(),)?;
+
+    Ok(())
 }
 
-pub fn create_memcrs_server(
+pub async fn create_memcrs_server(
     config: MemcrsdConfig,
     store: Arc<dyn Cache + Send + Sync>,
-) -> tokio::runtime::Runtime {
+) -> Result<()> {
     match config.runtime_type {
-        RuntimeType::CurrentThread => create_current_thread_server(config, store),
-        RuntimeType::MultiThread => create_threadpool_server(config, store),
+        RuntimeType::CurrentThread => create_current_thread_server(config, store).await,
+        RuntimeType::MultiThread => create_threadpool_server(config, store).await,
     }
 }
