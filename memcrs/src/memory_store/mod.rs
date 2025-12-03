@@ -2,6 +2,7 @@ use clap::ValueEnum;
 
 pub mod dash_map_store;
 pub mod moka_store;
+pub mod ebpf_map_store;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 pub enum StoreEngine {
@@ -9,6 +10,8 @@ pub enum StoreEngine {
     DashMap,
     /// store based on moka library
     Moka,
+    /// store based on eBPF maps
+    EbpfMap,
 }
 
 impl StoreEngine {
@@ -16,6 +19,7 @@ impl StoreEngine {
         match self {
             StoreEngine::DashMap => "DashMap backend",
             StoreEngine::Moka => "Moka backend",
+            StoreEngine::EbpfMap => "eBPF Map backend",
         }
     }
 }
@@ -28,11 +32,13 @@ mod tests {
     fn test_as_str() {
         assert_eq!(StoreEngine::DashMap.as_str(), "DashMap backend");
         assert_eq!(StoreEngine::Moka.as_str(), "Moka backend");
+        assert_eq!(StoreEngine::EbpfMap.as_str(), "eBPF Map backend");
     }
 
     #[test]
     fn test_enum_ordering() {
         assert!(StoreEngine::DashMap < StoreEngine::Moka);
+        assert!(StoreEngine::Moka < StoreEngine::EbpfMap);
     }
 
     #[test]

@@ -1,5 +1,6 @@
 extern crate core_affinity;
 use crate::memcache;
+use crate::memcache::store;
 use crate::memcache_server;
 use crate::server;
 use crate::{
@@ -113,15 +114,8 @@ fn create_threadpool_server(
 
 pub fn create_memcrs_server(
     config: MemcrsdConfig,
-    system_timer: std::sync::Arc<server::timer::SystemTimer>,
+    store: Arc<dyn Cache + Send + Sync>,
 ) -> tokio::runtime::Runtime {
-    let store_config = memcache::builder::MemcacheStoreConfig::new(
-        config.store_engine,
-        config.memory_limit,
-        config.eviction_policy,
-    );
-    let store = memcache::builder::MemcacheStoreBuilder::from_config(store_config, system_timer);
-
     match config.runtime_type {
         RuntimeType::CurrentThread => create_current_thread_server(config, store),
         RuntimeType::MultiThread => create_threadpool_server(config, store),

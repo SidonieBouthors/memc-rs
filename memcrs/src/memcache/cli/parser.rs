@@ -82,6 +82,7 @@ pub struct MemcrsdConfig {
     /// Possible values:
     /// - dash-map: store will use dash-map implementation
     /// - moka: store will use moka implementation
+    /// - ebpf-map: store will use eBPF map implementation
     pub store_engine: StoreEngine,
 }
 
@@ -122,6 +123,7 @@ fn parse_store_engine(s: &str) -> Result<StoreEngine, String> {
     match s {
         "moka" => Ok(StoreEngine::Moka),
         "dash-map" => Ok(StoreEngine::DashMap),
+        "ebpf-map" => Ok(StoreEngine::EbpfMap),
         _ => Err(format!("Invalid store engine selected: {}", s)),
     }
 }
