@@ -3,10 +3,14 @@ use memcrs::{
     cache::eviction_policy::EvictionPolicy, memcache::cli::parser::RuntimeType,
     memory_store::StoreEngine, server,
 };
-use procspawn::SpawnError;
+use nix::{
+    errno::Errno,
+    sys::signal::{kill, SIGINT},
+    unistd::Pid,
+};
 use rand::Rng;
 use std::sync::Mutex;
-use nix::{errno::Errno, sys::signal::{ kill, SIGINT}, unistd::Pid};
+use tokio::runtime::Builder;
 
 pub struct MemcrsdTestServer {
     process_handle: procspawn::JoinHandle<()>,
@@ -27,13 +31,13 @@ impl MemcrsdTestServer {
             Some(raw_pid) => {
                 let process_pid = Pid::from_raw(raw_pid as i32);
                 kill(process_pid, SIGINT)
-            },
+            }
             None => {
                 self.process_handle.kill();
                 Ok(())
             }
         }
-        
+
         //
     }
 
@@ -67,7 +71,7 @@ pub struct MemcrsdServerParamsBuilder {
 impl MemcrsdServerParamsBuilder {
     pub fn new() -> MemcrsdServerParamsBuilder {
         MemcrsdServerParamsBuilder {
-            engine: StoreEngine::DashMap,
+            engine: StoreEngine::EbpfMap,
             policy: EvictionPolicy::None,
             runtime: RuntimeType::CurrentThread,
             memory_limit: 1024 * 1024 * 64,
@@ -164,7 +168,16 @@ pub fn spawn_server(mut params: MemcrsdServerParamsBuilder) -> MemcrsdTestServer
     let port = pseudoRanomPort.lock().unwrap().get_next_port();
     params.with_port(port);
     let args = params.build();
-    let handle = procspawn::spawn(args, |args| server::main::run(args));
+    let handle = procspawn::spawn(args, |args| {
+        let runtime = Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create dedicated runtime for test server");
+
+        runtime
+            .block_on(server::main::run(args))
+            .expect("Memcrsd test server exited with an error")
+    });
     MemcrsdTestServer::new(handle, port)
 }
 

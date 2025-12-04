@@ -5,9 +5,18 @@ use crate::memory_store::dash_map_store::DashMapMemoryStore;
 use crate::memory_store::ebpf_map_store::EbpfMapMemoryStore;
 use crate::memory_store::moka_store::MokaMemoryStore;
 use crate::memory_store::StoreEngine;
+use crate::server::ebpf_util::attach_xdp_program;
+use crate::server::ebpf_util::get_cache_map;
+use crate::server::ebpf_util::get_xdp_program;
+use crate::server::ebpf_util::init_ebpf_logger;
+use crate::server::ebpf_util::set_port_config;
 use crate::server::timer;
-use aya::maps::HashMap;
-use log::info;
+use anyhow::Context;
+use anyhow::Error;
+use aya::programs::Xdp;
+use network_interface::NetworkInterface;
+use network_interface::NetworkInterfaceConfig;
+use std::net::IpAddr;
 use std::process;
 use std::sync::Arc;
 use tracing_log::LogTracer;
@@ -96,42 +105,15 @@ pub async fn run(args: Vec<String>) -> anyhow::Result<()> {
                 }
             };
 
-            match aya_log::EbpfLogger::init(&mut ebpf) {
-                Err(e) => {
-                    // This can happen if you remove all log statements from your eBPF program.
-                    warn!("failed to initialize eBPF logger: {e}");
-                }
-                Ok(logger) => {
-                    let mut logger = tokio::io::unix::AsyncFd::with_interest(
-                        logger,
-                        tokio::io::Interest::READABLE,
-                    )
-                    .unwrap();
-                    tokio::task::spawn(async move {
-                        loop {
-                            let mut guard = logger.readable_mut().await.unwrap();
-                            guard.get_inner_mut().flush();
-                            guard.clear_ready();
-                        }
-                    });
-                }
-            }
+            init_ebpf_logger(&mut ebpf);
 
-            // let memory: Storage = HashMap::try_from(ebpf.map_mut("CACHE_MAP").unwrap())?;
+            set_port_config(&mut ebpf, "CONFIG_PORT", cli_config.port)?;
 
-            let map_handle = ebpf
-                .take_map("CACHE_MAP")
-                .ok_or_else(|| {
-                    eprintln!("Fatal: eBPF map 'CACHE_MAP' not found");
-                    process::exit(1);
-                })
-                .and_then(|m| {
-                    HashMap::try_from(m).map_err(|e| {
-                        eprintln!("Fatal: Failed to create map handle: {}", e);
-                        process::exit(1);
-                    })
-                })
-                .unwrap();
+            let interface_name = get_interface_name_from_addr(cli_config.listen_address)?;
+            let program: &mut Xdp = get_xdp_program(&mut ebpf, "xdp_packet_capture")?;
+            attach_xdp_program(program, &interface_name)?;
+
+            let map_handle = get_cache_map(&mut ebpf, "CACHE_MAP")?;
 
             Arc::new(EbpfMapMemoryStore::new(
                 system_timer.clone(),
@@ -151,4 +133,20 @@ pub async fn run(args: Vec<String>) -> anyhow::Result<()> {
     tokio::try_join!(server_future, system_timer.run(),)?;
 
     Ok(())
+}
+
+fn get_interface_name_from_addr(target_addr: IpAddr) -> anyhow::Result<String> {
+    let interfaces = NetworkInterface::show().context("Failed to retrieve network interfaces")?;
+
+    for interface in interfaces {
+        for addr in interface.addr {
+            if addr.ip() == target_addr {
+                return Ok(interface.name);
+            }
+        }
+    }
+    Err(Error::msg(format!(
+        "No network interface found with IP address: {}",
+        target_addr
+    )))
 }
