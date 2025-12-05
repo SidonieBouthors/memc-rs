@@ -5,18 +5,30 @@ use crate::memory_store::dash_map_store::DashMapMemoryStore;
 use crate::memory_store::ebpf_map_store::EbpfMapMemoryStore;
 use crate::memory_store::moka_store::MokaMemoryStore;
 use crate::memory_store::StoreEngine;
+use crate::server::ebpf_util::add_self_to_cgroup;
+use crate::server::ebpf_util::attach_sock_ops_program;
 use crate::server::ebpf_util::attach_xdp_program;
 use crate::server::ebpf_util::get_cache_map;
+use crate::server::ebpf_util::get_sock_ops_program;
 use crate::server::ebpf_util::get_xdp_program;
 use crate::server::ebpf_util::init_ebpf_logger;
 use crate::server::ebpf_util::set_port_config;
 use crate::server::timer;
 use anyhow::Context;
 use anyhow::Error;
+use aya::programs::CgroupAttachMode;
 use aya::programs::Xdp;
+use libc::CGROUP2_SUPER_MAGIC;
 use network_interface::NetworkInterface;
 use network_interface::NetworkInterfaceConfig;
+use std::fs;
+use std::fs::create_dir_all;
+use std::fs::File;
+use std::io::Write;
 use std::net::IpAddr;
+use std::net::SocketAddr;
+use std::net::TcpListener;
+use std::os::fd::AsRawFd;
 use std::process;
 use std::sync::Arc;
 use tracing_log::LogTracer;
@@ -28,6 +40,8 @@ use jemallocator::Jemalloc;
 #[cfg(feature = "jemallocator")]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
+
+const CGROUP_PATH: &str = "/sys/fs/cgroup/memcrs_ebpf";
 
 fn get_log_level(verbose: u8) -> tracing::Level {
     // Vary the output based on how many times the user used the "verbose" flag
@@ -109,9 +123,16 @@ pub async fn run(args: Vec<String>) -> anyhow::Result<()> {
 
             set_port_config(&mut ebpf, "CONFIG_PORT", cli_config.port)?;
 
-            let interface_name = get_interface_name_from_addr(cli_config.listen_address)?;
-            let program: &mut Xdp = get_xdp_program(&mut ebpf, "xdp_packet_capture")?;
-            attach_xdp_program(program, &interface_name)?;
+            // let interface_name = get_interface_name_from_addr(cli_config.listen_address)?;
+            // let program: &mut Xdp = get_xdp_program(&mut ebpf, "xdp_packet_capture")?;
+            // attach_xdp_program(program, &interface_name)?;
+
+            add_self_to_cgroup(&mut ebpf, CGROUP_PATH)?;
+            let cgroup = File::open(CGROUP_PATH)
+                .context(format!("Failed to open cgroup at {}", CGROUP_PATH))?;
+
+            let sock_ops_program = get_sock_ops_program(&mut ebpf, "memcrs_sockops")?;
+            attach_sock_ops_program(sock_ops_program, &cgroup)?;
 
             let map_handle = get_cache_map(&mut ebpf, "CACHE_MAP")?;
 
