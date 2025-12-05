@@ -42,10 +42,10 @@ impl MemcrsdTestServer {
     }
 
     pub fn get_connection_string(&self) -> String {
-        String::from(format!(
+        format!(
             "memcache://127.0.0.1:{}?timeout=5&tcp_nodelay=true&protocol=binary",
             self.port
-        ))
+        )
     }
 }
 
@@ -71,7 +71,7 @@ pub struct MemcrsdServerParamsBuilder {
 impl MemcrsdServerParamsBuilder {
     pub fn new() -> MemcrsdServerParamsBuilder {
         MemcrsdServerParamsBuilder {
-            engine: StoreEngine::EbpfMap,
+            engine: StoreEngine::DashMap,
             policy: EvictionPolicy::None,
             runtime: RuntimeType::CurrentThread,
             memory_limit: 1024 * 1024 * 64,

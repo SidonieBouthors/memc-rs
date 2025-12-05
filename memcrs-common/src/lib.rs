@@ -1,5 +1,7 @@
 #![no_std]
 
+pub mod network;
+
 pub type EbpfKey = u64;
 
 pub const MAX_VALUE_SIZE: usize = 5120;
