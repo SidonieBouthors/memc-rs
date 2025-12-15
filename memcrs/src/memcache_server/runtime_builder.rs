@@ -21,16 +21,6 @@ fn get_worker_thread_name() -> String {
     str
 }
 
-fn create_multi_thread_runtime(worker_threads: usize) -> tokio::runtime::Runtime {
-    let runtime = Builder::new_multi_thread()
-        .thread_name_fn(get_worker_thread_name)
-        .worker_threads(worker_threads)
-        .enable_all()
-        .build()
-        .unwrap();
-    runtime
-}
-
 fn create_current_thread_runtime() -> tokio::runtime::Runtime {
     let runtime = Builder::new_current_thread()
         //.worker_threads(threads as usize)

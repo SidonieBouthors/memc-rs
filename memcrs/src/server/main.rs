@@ -99,7 +99,7 @@ pub async fn run(args: Vec<String>) -> anyhow::Result<()> {
             match aya_log::EbpfLogger::init(&mut ebpf) {
                 Err(e) => {
                     // This can happen if you remove all log statements from your eBPF program.
-                    warn!("failed to initialize eBPF logger: {e}");
+                    warn!("failed to initialize eBPF logger: {e}. This may be because there are no log statements in the eBPF program.");
                 }
                 Ok(logger) => {
                     let mut logger = tokio::io::unix::AsyncFd::with_interest(

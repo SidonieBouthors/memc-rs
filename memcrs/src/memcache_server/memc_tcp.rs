@@ -2,7 +2,6 @@ use socket2::{Domain, SockAddr, Socket, Type};
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
 
-use tokio::io;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 use tracing::{debug, error};

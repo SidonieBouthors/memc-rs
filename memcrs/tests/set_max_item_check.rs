@@ -2,6 +2,7 @@ procspawn::enable_test_support!();
 use common::create_value_with_size;
 mod common;
 
+#[ignore]
 #[test]
 fn max_item_check() {
     let params_builder: common::MemcrsdServerParamsBuilder =

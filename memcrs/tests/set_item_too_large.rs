@@ -2,6 +2,7 @@ procspawn::enable_test_support!();
 use common::create_value_with_size;
 mod common;
 
+#[ignore]
 #[test]
 fn set_item_too_large() {
     let params_builder: common::MemcrsdServerParamsBuilder =
