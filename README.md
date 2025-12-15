@@ -11,7 +11,7 @@ For this we use the Aya eBPF library for Rust. See [Aya Development](https://aya
 To run memcrsd with the eBPF based storage engine, you may use the following command:
 
 ```sh
-cargo run --config 'target."cfg(all())".runner="sudo -E"' --bin memcrsd -- --store-engine ebpf-map
+cargo run --bin memcrsd -- --store-engine ebpf-map
 ```
 
 

@@ -5,13 +5,13 @@ use std::{
 
 use anyhow::{Context, Result};
 use aya::{
-    maps::{Array, HashMap, MapData, SockHash},
-    programs::{CgroupAttachMode, SockOps, Xdp, XdpFlags},
+    maps::{sock::SockMapFd, Array, HashMap, MapData, SockHash},
+    programs::{CgroupAttachMode, SkSkb, SockOps, Xdp, XdpFlags},
     Ebpf,
 };
-use memcrs_common::{EbpfKey, EbpfValue};
+use memcrs_common::{EbpfKey, EbpfValue, SockKey};
 
-pub fn add_self_to_cgroup(ebpf: &mut Ebpf, cgroup_path: &str) -> Result<()> {
+pub fn add_self_to_cgroup(cgroup_path: &str) -> Result<()> {
     std::fs::create_dir_all(cgroup_path)
         .context(format!("Failed to create cgroup directory {}", cgroup_path))?;
 
@@ -29,9 +29,6 @@ pub fn add_self_to_cgroup(ebpf: &mut Ebpf, cgroup_path: &str) -> Result<()> {
     procs_file
         .write_all(format!("{}", current_pid).as_bytes())
         .context("Failed to write PID to cgroup.procs")?;
-
-    let cgroup_file =
-        File::open(cgroup_path).context("Failed to open cgroup directory for sock ops program")?;
 
     Ok(())
 }
@@ -52,12 +49,12 @@ pub fn get_cache_map(
     Ok(cache_map)
 }
 
-pub fn get_sock_map(ebpf: &mut Ebpf, map_name: &str) -> Result<SockHash<MapData, u32>> {
+pub fn get_sock_map(ebpf: &mut Ebpf, map_name: &str) -> Result<SockHash<MapData, SockKey>> {
     let map_handle = ebpf
         .take_map(map_name)
         .context(format!("eBPF map '{}' not found", map_name))?;
 
-    let sock_map: SockHash<MapData, u32> = map_handle
+    let sock_map: SockHash<MapData, SockKey> = map_handle
         .try_into()
         .context("Failed to convert map handle to HashMap<u32, u32>")?;
 
@@ -140,6 +137,55 @@ pub fn attach_sock_ops_program(program: &mut SockOps, cgroup: &File) -> Result<(
     program
         .attach(cgroup, CgroupAttachMode::Single)
         .context("Failed to attach sock ops program to cgroup")?;
+
+    Ok(())
+}
+
+pub fn attach_skb_programs(
+    ebpf: &mut Ebpf,
+    parser_name: &str,
+    verdict_name: &str,
+    sock_map: &SockMapFd,
+) -> Result<()> {
+    let parser_program: &mut SkSkb = ebpf
+        .program_mut(parser_name)
+        .context(format!(
+            "Stream Parser program '{}' not found in eBPF object",
+            parser_name
+        ))?
+        .try_into()
+        .context(format!(
+            "Failed to cast program '{}' to Skb type",
+            parser_name
+        ))?;
+
+    parser_program
+        .load()
+        .context("Failed to load parser program into kernel")?;
+
+    parser_program
+        .attach(sock_map)
+        .context("Failed to attach parser program to sock map")?;
+
+    let verdict_program: &mut SkSkb = ebpf
+        .program_mut(verdict_name)
+        .context(format!(
+            "Stream Verdict program '{}' not found in eBPF object",
+            verdict_name
+        ))?
+        .try_into()
+        .context(format!(
+            "Failed to cast program '{}' to Skb type",
+            verdict_name
+        ))?;
+
+    verdict_program
+        .load()
+        .context("Failed to load verdict program into kernel")?;
+
+    verdict_program
+        .attach(sock_map)
+        .context("Failed to attach verdict program to sock map")?;
 
     Ok(())
 }

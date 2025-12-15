@@ -22,6 +22,17 @@ pub struct EbpfValue {
     pub data: [u8; MAX_VALUE_SIZE],
 }
 
+#[derive(Copy, Clone)]
+#[repr(C, packed)]
+pub struct SockKey {
+    pub remote_ip4: u32,
+    pub local_ip4: u32,
+    pub remote_port: u32,
+    pub local_port: u32,
+}
+
 // Required by Aya for use in eBPF maps
 #[cfg(feature = "user")]
 unsafe impl aya::Pod for EbpfValue {}
+#[cfg(feature = "user")]
+unsafe impl aya::Pod for SockKey {}
